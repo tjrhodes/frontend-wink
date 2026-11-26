@@ -1,6 +1,7 @@
 /**
  * Previous / page numbers / next. Every page is a real link, so pages can be
  * opened in new tabs, and Back returns to the page you came from.
+ * Next is offered only when the next page exists (see usePagingFacts.ts).
  */
 import { Link } from "../routing/Link";
 import type { SearchRoute } from "../routing/routes";
@@ -16,12 +17,14 @@ const STEPS = {
   next: { pageOffset: 1, label: "Next", arrow: "→" },
 } as const;
 
-export function Paginator({ route, totalPages }: { route: SearchRoute; totalPages: number }) {
-  if (totalPages <= 1) return null;
+type PaginatorProps = { route: SearchRoute; hasNextPage: boolean };
+
+export function Paginator({ route, hasNextPage }: PaginatorProps) {
+  if (route.page === 1 && !hasNextPage) return null;
   return (
     <nav aria-label="Pages of results" className="mt-8 flex items-center justify-center gap-1">
-      <StepLink route={route} totalPages={totalPages} direction="previous" />
-      {pageNumbersAround(route.page, totalPages).map((item, position) =>
+      <StepLink route={route} hasNextPage={hasNextPage} direction="previous" />
+      {pageNumbersAround(route.page, hasNextPage).map((item, position) =>
         item === "gap" ? (
           <span key={`gap-${position}`} className="px-1 text-mute" aria-hidden>
             …
@@ -30,7 +33,7 @@ export function Paginator({ route, totalPages }: { route: SearchRoute; totalPage
           <PageLink key={item} route={route} page={item} />
         ),
       )}
-      <StepLink route={route} totalPages={totalPages} direction="next" />
+      <StepLink route={route} hasNextPage={hasNextPage} direction="next" />
     </nav>
   );
 }
@@ -46,13 +49,13 @@ function PageLink({ route, page }: { route: SearchRoute; page: number }) {
   );
 }
 
-type StepLinkProps = { route: SearchRoute; totalPages: number; direction: keyof typeof STEPS };
+type StepLinkProps = PaginatorProps & { direction: keyof typeof STEPS };
 
 /**
  * "Previous" or "Next", greyed out (not a link) when there's nowhere to go.
  * On phones only the arrow shows; the word stays there for screen readers.
  */
-function StepLink({ route, totalPages, direction }: StepLinkProps) {
+function StepLink({ route, hasNextPage, direction }: StepLinkProps) {
   const { pageOffset, label, arrow } = STEPS[direction];
   const toPage = route.page + pageOffset;
   const word = <span className="max-sm:sr-only">{label}</span>;
@@ -68,7 +71,8 @@ function StepLink({ route, totalPages, direction }: StepLinkProps) {
         {arrow}
       </>
     );
-  if (toPage < 1 || toPage > totalPages) return <span className={`${BUTTON} text-line`}>{content}</span>;
+  const canGo = direction === "previous" ? toPage >= 1 : hasNextPage;
+  if (!canGo) return <span className={`${BUTTON} text-line`}>{content}</span>;
   return (
     <Link to={{ ...route, page: toPage }} className={`${BUTTON} ${ACTIVE_LINK}`}>
       {content}

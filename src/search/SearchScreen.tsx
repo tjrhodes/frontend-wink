@@ -11,11 +11,11 @@ import { ProblemNotice } from "../ui/ProblemNotice";
 import { StatusMessage } from "../ui/StatusMessage";
 import { useDocumentTitle } from "../ui/useDocumentTitle";
 import { BookList } from "./BookList";
-import { countPages } from "./pageNumbers";
 import { Paginator } from "./Paginator";
 import { ResultsToolbar } from "./ResultsToolbar";
 import { SearchBox } from "./SearchBox";
 import { SkeletonList } from "./SkeletonList";
+import { usePagingFacts } from "./usePagingFacts";
 
 export function SearchScreen({ route }: { route: SearchRoute }) {
   useDocumentTitle(route.query.trim() || undefined);
@@ -62,13 +62,20 @@ function ResultsContent({ route, result, isFetching, hasProblem }: ResultsConten
         <SkeletonList rows={route.pageSize} />
       </>
     );
-  const totalPages = countPages(result.totalItems, route.pageSize);
+  return <ResultsPage route={route} result={result} isFetching={isFetching} />;
+}
+
+type ResultsPageProps = { route: SearchRoute; result: BookSearchResult; isFetching: boolean };
+
+/** A page of results, with the count above and the paginator below. */
+function ResultsPage({ route, result, isFetching }: ResultsPageProps) {
+  const { hasNextPage, estimatedTotal } = usePagingFacts(route, result);
   return (
     // While a newer search is on its way, these results stay where they are, dimmed.
     <div aria-busy={isFetching} className={`transition-opacity ${isFetching ? "opacity-60" : ""}`}>
-      <ResultsToolbar route={route} totals={{ totalItems: result.totalItems, totalPages }} />
+      <ResultsToolbar route={route} estimatedTotal={estimatedTotal} />
       {result.books.length === 0 ? <NothingHere route={route} /> : <BookList books={result.books} />}
-      <Paginator route={route} totalPages={totalPages} />
+      <Paginator route={route} hasNextPage={hasNextPage} />
     </div>
   );
 }
@@ -82,8 +89,8 @@ function StartTyping() {
 }
 
 /**
- * Google's total is an estimate, so a page it promised can turn out empty.
- * On page 1 that means no matches; later on, it means we've run out.
+ * On page 1, no books means no matches. Later on, it means Google's results
+ * ran out before its own estimate said they would (see usePagingFacts.ts).
  */
 function NothingHere({ route }: { route: SearchRoute }) {
   if (route.page === 1)
@@ -91,10 +98,10 @@ function NothingHere({ route }: { route: SearchRoute }) {
       <StatusMessage title={`No books found for “${route.query.trim()}”`}>Try fewer or different words.</StatusMessage>
     );
   return (
-    <StatusMessage title="No more results">
-      Google estimated more books than it actually returned.{" "}
-      <Link to={{ ...route, page: 1 }} className="text-slate underline hover:text-rust">
-        Back to page 1
+    <StatusMessage title="That's the end of the results">
+      Google's results stop before page {route.page}.{" "}
+      <Link to={{ ...route, page: route.page - 1 }} className="text-slate underline hover:text-rust">
+        Back to page {route.page - 1}
       </Link>
     </StatusMessage>
   );

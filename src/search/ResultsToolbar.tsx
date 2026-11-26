@@ -9,22 +9,22 @@ import type { SearchRoute } from "../routing/routes";
 
 const formatNumber = new Intl.NumberFormat("en").format;
 
-/** How many results there are; left out while the first answer is still loading. */
-export type ResultTotals = { totalItems: number; totalPages: number };
-
-export function ResultsToolbar({ route, totals }: { route: SearchRoute; totals?: ResultTotals }) {
+/** Google's estimate of how many books match; left out while the first answer is still loading. */
+export function ResultsToolbar({ route, estimatedTotal }: { route: SearchRoute; estimatedTotal?: number }) {
   return (
     // Stacked on phones and side by side from tablets up, whatever the text, so its height never changes.
     <div className="flex flex-col gap-2 border-b-2 border-rock pb-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="kicker truncate text-mute">{totals ? describeTotals(route, totals) : "Searching…"}</p>
+      <p className="kicker truncate text-mute">
+        {estimatedTotal === undefined ? "Searching…" : describeTotal(route, estimatedTotal)}
+      </p>
       <PageSizePicker route={route} />
     </div>
   );
 }
 
-/** "About", because Google's total is an estimate that can change from page to page. */
-function describeTotals(route: SearchRoute, { totalItems, totalPages }: ResultTotals): string {
-  return `About ${formatNumber(totalItems)} books · page ${route.page} of ${formatNumber(totalPages)}`;
+/** "About", because Google's count is only an estimate (and no "of N": see usePagingFacts.ts). */
+function describeTotal(route: SearchRoute, estimatedTotal: number): string {
+  return `About ${formatNumber(estimatedTotal)} books · page ${route.page}`;
 }
 
 /** Changing the page size goes back to page 1, since the old page number no longer means the same books. */

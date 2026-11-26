@@ -9,7 +9,7 @@
  *    answer can never replace a newer one.
  */
 import { useEffect } from "react";
-import { useLazySearchBooksQuery, type BookSearchRequest } from "./booksApi";
+import { searchRequestFor, useLazySearchBooksQuery, type BookSearchRequest } from "./booksApi";
 
 export function useLiveBookSearch({ query, page, pageSize }: BookSearchRequest) {
   const [startSearch, searchState] = useLazySearchBooksQuery();
@@ -18,7 +18,7 @@ export function useLiveBookSearch({ query, page, pageSize }: BookSearchRequest) 
   useEffect(() => {
     if (!hasQuery) return;
     // `true` = use a cached answer if we have one, instead of asking Google again.
-    const pendingSearch = startSearch({ query, page, pageSize }, true);
+    const pendingSearch = startSearch(searchRequestFor({ query, page, pageSize }, page), true);
     // Runs when the search changes or the screen closes: cancel what's still in flight.
     return () => pendingSearch.abort();
   }, [hasQuery, query, page, pageSize, startSearch]);

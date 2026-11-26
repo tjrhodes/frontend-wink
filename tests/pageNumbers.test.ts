@@ -1,24 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { countPages, pageNumbersAround } from "../src/search/pageNumbers";
+import { pageNumbersAround } from "../src/search/pageNumbers";
 
 describe("pageNumbersAround", () => {
-  it("shows every page when there are only a few", () => {
-    expect(pageNumbersAround(2, 4)).toEqual([1, 2, 3, 4]);
+  it("shows the next page only when it exists", () => {
+    expect(pageNumbersAround(1, true)).toEqual([1, 2]);
+    expect(pageNumbersAround(1, false)).toEqual([1]);
   });
 
-  it("shows first, last and neighbours, with gaps in between", () => {
-    expect(pageNumbersAround(6, 20)).toEqual([1, "gap", 5, 6, 7, "gap", 20]);
+  it("shows the two pages before the current one", () => {
+    expect(pageNumbersAround(3, true)).toEqual([1, 2, 3, 4]);
   });
 
-  it("doesn't add a gap at the edges", () => {
-    expect(pageNumbersAround(1, 20)).toEqual([1, 2, "gap", 20]);
-    expect(pageNumbersAround(20, 20)).toEqual([1, "gap", 19, 20]);
-  });
-});
-
-describe("countPages", () => {
-  it("rounds up, and never says zero pages", () => {
-    expect(countPages(47, 10)).toBe(5);
-    expect(countPages(0, 10)).toBe(1);
+  it("keeps page 1 reachable, with a gap when pages are skipped", () => {
+    expect(pageNumbersAround(4, true)).toEqual([1, 2, 3, 4, 5]);
+    expect(pageNumbersAround(9, false)).toEqual([1, "gap", 7, 8, 9]);
   });
 });

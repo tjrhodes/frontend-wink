@@ -46,6 +46,15 @@ export const booksApi = createApi({
 export const { useLazySearchBooksQuery, useGetBookQuery } = booksApi;
 
 /**
+ * The request for one page of a search. RTK Query caches answers by their
+ * request, so every part of the app builds requests here: the same page
+ * always means exactly the same request, and finds the same cached answer.
+ */
+export function searchRequestFor({ query, pageSize }: BookSearchRequest, page: number): BookSearchRequest {
+  return { query, page, pageSize };
+}
+
+/**
  * Pagination uses Google's own parameters, as the brief asks:
  * `startIndex` is where the page begins (counting from 0), `maxResults` its size.
  */
