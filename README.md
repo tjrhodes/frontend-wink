@@ -32,6 +32,7 @@ src/
     routeSlice.ts              the current route, in Redux
     Link.tsx, BackToResults.tsx
   transitions/                 GSAP page transition and reduced-motion handling
+  ui/                          shared bits: the band background, status messages, notices
   books/
     book.ts                    the app's Book type, and the mapping from Google's data
     booksApi.ts                RTK Query endpoints for Google Books
@@ -93,7 +94,15 @@ Tailwind v4 doesn't process Sass, so `styles/theme.scss` holds the palette as a 
 
 ### Motion
 
-GSAP animates the change between screens and staggers the results in. Every duration goes through one helper, so visitors who ask for reduced motion get instant changes instead. After each new screen, keyboard focus moves to the search field or the page heading.
+GSAP animates the change between screens. The blue band at the top stays on screen throughout:
+
+1. The old content fades out.
+2. The band stretches or shrinks to the new screen's height, with a heavy ease-in-out.
+3. The new content fades in.
+
+While the old screen fades out, the router already loads the new screen's data (`routing/prepareRoute.ts`). The book page therefore arrives complete, and the band morphs straight to its final height. Results fade in with a light stagger.
+
+Every duration goes through one helper, so visitors who ask for reduced motion get instant changes instead. After each new screen, keyboard focus moves to the search field or the page heading.
 
 ## Deploying to Vercel
 

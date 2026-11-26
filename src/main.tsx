@@ -23,4 +23,4 @@ flushSync(() =>
     </StrictMode>,
   ),
 );
-void revealScreen();
+void revealScreen({ isFirstScreen: true });

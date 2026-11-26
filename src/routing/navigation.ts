@@ -11,7 +11,8 @@
  */
 import { flushSync } from "react-dom";
 import type { AppStore } from "../app/store";
-import { pageTransition } from "../transitions/pageTransition";
+import { pageTransition, playFirstAppearance } from "../transitions/pageTransition";
+import { prepareRoute } from "./prepareRoute";
 import { routeChanged, selectCurrentRoute } from "./routeSlice";
 import { routeFromUrl, screenOf, urlForRoute, type Route } from "./routes";
 
@@ -66,14 +67,24 @@ function interceptNavigation(event: NavigateEvent) {
 /** Shows the next route: instantly on the same screen, with a transition on a new one. */
 async function changeRoute(event: NavigateEvent, nextRoute: Route) {
   const isNewScreen = screenOf(nextRoute) !== screenOf(currentRoute());
-  if (isNewScreen) await pageTransition.leave();
+  if (!isNewScreen) return showOnSameScreen(event, nextRoute);
+  // The old screen fades out while the new screen's data loads.
+  const [releaseData] = await Promise.all([prepareRoute(nextRoute, store()), pageTransition.leave()]);
   // If a newer navigation started while we were animating, it takes over from here.
-  if (event.signal.aborted) return;
+  if (event.signal.aborted) return releaseData();
   showRoute(nextRoute);
-  // Typing replaces the entry and keeps the scroll position; everything else
-  // goes to the top, or back to where you were when using Back and Forward.
+  releaseData();
+  event.scroll();
+  await revealScreen();
+}
+
+/**
+ * Typing replaces the history entry and keeps the scroll position; a new page
+ * of results goes to the top, and Back or Forward to where you were.
+ */
+function showOnSameScreen(event: NavigateEvent, nextRoute: Route) {
+  showRoute(nextRoute);
   if (event.navigationType !== "replace") event.scroll();
-  if (isNewScreen) await revealScreen();
 }
 
 /**
@@ -81,8 +92,8 @@ async function changeRoute(event: NavigateEvent, nextRoute: Route) {
  * to whatever the screen marked with `data-autofocus`, or else its main heading,
  * so keyboard and screen reader users start reading in the right place.
  */
-export async function revealScreen() {
-  await pageTransition.enter();
+export async function revealScreen({ isFirstScreen = false } = {}) {
+  await (isFirstScreen ? playFirstAppearance() : pageTransition.enter());
   const startingPoint = document.querySelector<HTMLElement>("#screen [data-autofocus], #screen h1");
   startingPoint?.focus({ preventScroll: true });
 }
@@ -93,8 +104,12 @@ function showRoute(route: Route) {
 }
 
 function currentRoute(): Route {
+  return selectCurrentRoute(store().getState());
+}
+
+function store(): AppStore {
   if (!routerStore) throw new Error("startRouter() must run before navigating");
-  return selectCurrentRoute(routerStore.getState());
+  return routerStore;
 }
 
 /** For browsers without the Navigation API: the older History API, without transitions. */

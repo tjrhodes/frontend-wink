@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { authorList, type Book } from "../books/book";
 import { BookCover } from "../books/BookCover";
 import { BackToResults } from "../routing/BackToResults";
+import { BAND_BACKGROUND } from "../ui/band";
 import { BookFacts } from "./BookFacts";
 
 /** The only HTML we let through from Google's descriptions: simple text formatting. */
@@ -48,7 +49,7 @@ export const HEADER_COVER = "w-40 shrink-0 sm:w-48";
  */
 export function BookHeaderFrame({ cover, children }: { cover: ReactNode; children: ReactNode }) {
   return (
-    <header className="bg-linear-to-br from-crevice via-rock to-rock-2 text-paper">
+    <header data-band className={BAND_BACKGROUND}>
       <div className="mx-auto max-w-5xl px-5 py-6 sm:px-10 sm:py-10">
         <BackToResults className="mb-6 text-lichen" />
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end">

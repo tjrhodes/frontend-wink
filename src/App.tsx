@@ -8,6 +8,7 @@ import { BRAND } from "./config";
 import { Link } from "./routing/Link";
 import { emptySearchRoute, screenOf, type Route } from "./routing/routes";
 import { SearchScreen } from "./search/SearchScreen";
+import { BAND_BACKGROUND } from "./ui/band";
 import { StatusMessage } from "./ui/StatusMessage";
 
 export function App() {
@@ -15,10 +16,14 @@ export function App() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      {/* Starts hidden: the router's GSAP entrance reveals it. `key` gives each screen a fresh start. */}
-      <main id="screen" key={screenOf(route)} className="invisible flex-1">
-        <ScreenFor route={route} />
-      </main>
+      <div className="relative flex-1">
+        {/* Behind the screen: keeps the blue band on show while screens change (see pageTransition.ts). */}
+        <div id="band-backdrop" aria-hidden className={`absolute inset-x-0 top-0 h-0 ${BAND_BACKGROUND}`} />
+        {/* Starts hidden: the router's GSAP entrance reveals it. `key` gives each screen a fresh start. */}
+        <main id="screen" key={screenOf(route)} className="invisible relative">
+          <ScreenFor route={route} />
+        </main>
+      </div>
       <SiteFooter />
     </div>
   );

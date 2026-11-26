@@ -6,6 +6,7 @@ import { useLiveBookSearch } from "../books/useLiveBookSearch";
 import type { BookSearchResult } from "../books/book";
 import { Link } from "../routing/Link";
 import type { SearchRoute } from "../routing/routes";
+import { BAND_BACKGROUND } from "../ui/band";
 import { ProblemNotice } from "../ui/ProblemNotice";
 import { StatusMessage } from "../ui/StatusMessage";
 import { useDocumentTitle } from "../ui/useDocumentTitle";
@@ -20,7 +21,7 @@ export function SearchScreen({ route }: { route: SearchRoute }) {
   useDocumentTitle(route.query.trim() || undefined);
   return (
     <>
-      <section className="bg-linear-to-br from-crevice via-rock to-rock-2 text-paper">
+      <section data-band className={BAND_BACKGROUND}>
         <div className="mx-auto max-w-5xl px-5 py-12 sm:px-10 sm:py-16">
           <SearchBox route={route} />
         </div>
