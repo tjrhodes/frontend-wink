@@ -5,8 +5,9 @@
  * instant), tracks loading and errors for us, and lets us cancel requests
  * that are no longer needed (see useLiveBookSearch.ts).
  */
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery, retry } from "@reduxjs/toolkit/query/react";
 import { GOOGLE_BOOKS_API_KEY, GOOGLE_BOOKS_URL, type PageSize } from "../config";
+import { isRateLimited } from "./errorMessages";
 import { toBook, toBookSearchResult, type Book, type BookSearchResult } from "./book";
 
 export interface BookSearchRequest {
@@ -15,9 +16,21 @@ export interface BookSearchRequest {
   pageSize: PageSize;
 }
 
+/** How many times to try again when Google says "too many requests" (HTTP 429). */
+const RATE_LIMIT_RETRIES = 3;
+
+/**
+ * Requests to Google, retried after a short, growing pause when Google is
+ * rate-limiting us. Other errors aren't retried: they won't fix themselves.
+ * A cancelled search also stops waiting for its retry straight away.
+ */
+const googleBooksQuery = retry(fetchBaseQuery({ baseUrl: GOOGLE_BOOKS_URL }), {
+  retryCondition: (error, _request, { attempt }) => isRateLimited(error) && attempt <= RATE_LIMIT_RETRIES,
+});
+
 export const booksApi = createApi({
   reducerPath: "booksApi",
-  baseQuery: fetchBaseQuery({ baseUrl: GOOGLE_BOOKS_URL }),
+  baseQuery: googleBooksQuery,
   endpoints: (build) => ({
     searchBooks: build.query<BookSearchResult, BookSearchRequest>({
       query: (request) => ({ url: "", params: withApiKey(searchParams(request)) }),
