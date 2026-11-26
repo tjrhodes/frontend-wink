@@ -31,7 +31,11 @@ export function BookDetails({ book }: { book: Book }) {
 function BookHeader({ book }: { book: Book }) {
   return (
     <BookHeaderFrame cover={<BookCover book={book} describe className={HEADER_COVER} />}>
-      <h1 tabIndex={-1} data-split-title className="text-4xl leading-[1.2] outline-none sm:text-5xl">
+      <h1
+        tabIndex={-1}
+        data-split-title
+        className="text-4xl leading-[1.2] outline-none [font-kerning:none] [font-variant-ligatures:none] sm:text-5xl"
+      >
         {book.title}
       </h1>
       {book.subtitle && <p className="mt-2 text-xl text-mist-dim">{book.subtitle}</p>}
