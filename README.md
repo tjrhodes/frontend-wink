@@ -86,7 +86,19 @@ Every result row has the same fixed height: one line of title, one of authors, t
 
 On the book page, the HTML is sanitised with DOMPurify before it's displayed.
 
-Google's `totalItems` is an estimate that can change between pages. So the count reads "About …", and a page that turns out empty says so and links back to page 1.
+### Paging without trusting Google's totals
+
+Google's `totalItems` can't be used to work out a last page. I checked with real searches:
+
+- **The total grows as you page.** For "kureishi", page 1 says 472, by result 30 it says 2,125, and later on 13,134.
+- **The real results end much sooner,** at around 350.
+
+A paginator built on that total links to pages that don't exist. So (`search/usePagingFacts.ts`):
+
+- **The count is page 1's estimate,** shown as "About …" with no "of N". It doesn't creep upwards as you page.
+- **The paginator never shows a last page.** It shows page 1, the pages just before the current one, and the next page only when it exists.
+- **"Next" is offered only when it leads somewhere.** The current page must be full, and a quiet look-ahead at the next page mustn't have come back empty. The look-ahead waits until typing pauses, and it also means the next page opens instantly, from the cache.
+- **If a page still comes back empty,** for example from an old link, it says the results have ended and links to the previous page.
 
 ### Theme colours in Sass
 
@@ -96,9 +108,13 @@ Tailwind v4 doesn't process Sass, so `styles/theme.scss` holds the palette as a 
 
 GSAP animates the change between screens. The blue band at the top stays on screen throughout:
 
-1. The old content fades out.
-2. The band stretches or shrinks to the new screen's height, with a heavy ease-in-out.
-3. The new content fades in.
+1. On a book page, the title's letters drop away, last letter first.
+2. The old content fades out, with a hard ease-in.
+3. The band stretches or shrinks to the new screen's height, with a heavy ease-in-out.
+4. The new content fades in, with a hard ease-out.
+5. On a book page, the title builds letter by letter with GSAP's SplitText, each word in its own mask.
+
+The title is split only while it animates, then restored to plain text, so React keeps control of it the rest of the time.
 
 While the old screen fades out, the router already loads the new screen's data (`routing/prepareRoute.ts`). The book page therefore arrives complete, and the band morphs straight to its final height. Results fade in with a light stagger.
 

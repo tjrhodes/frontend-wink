@@ -2,15 +2,18 @@
  * The animation between screens, played by the router.
  *
  * The blue band at the top stays on screen the whole time:
- * 1. Leaving: the old screen's content fades out. A backdrop the same height
- *    and colour as the band sits behind it, so the band seems to stay.
+ * 1. Leaving: a book title drops away letter by letter, then the content
+ *    fades out (hard ease-in). A backdrop the same height and colour as the
+ *    band sits behind it, so the band seems to stay.
  * 2. Entering: the backdrop stretches or shrinks to the new screen's band
- *    height (a heavy ease-in-out), then the new content fades in on top.
+ *    height (a heavy ease-in-out), then the new content fades in on top
+ *    (hard ease-out) while a book title builds in (see titleBuild.ts).
  * Meanwhile a lichen-yellow line grows under the header, like the lines under
  * the menu on tomrhodes.it.
  */
 import { gsap } from "gsap";
 import { duration } from "./motion";
+import { titleBuildIn, titleBuildOut } from "./titleBuild";
 
 const SCREEN = "#screen";
 const SCREEN_BAND = "#screen [data-band]";
@@ -18,12 +21,15 @@ const BAND_BACKDROP = "#band-backdrop";
 const PROGRESS_LINE = "#route-progress";
 
 export const pageTransition = {
-  /** Fades the old content out, leaving the band (on its backdrop) where it is. */
+  /** The title drops away (on a book page), then the content fades out with a hard ease-in. */
   leave() {
     gsap.set(BAND_BACKDROP, { height: heightOfBand() });
-    const timeline = gsap.timeline({ defaults: { duration: duration(0.25), ease: "power2.in" } });
-    timeline.to(SCREEN, { autoAlpha: 0 });
-    timeline.fromTo(PROGRESS_LINE, { scaleX: 0, autoAlpha: 1 }, { scaleX: 0.6, ease: "power1.out" }, 0);
+    const timeline = gsap.timeline();
+    const titleOut = titleBuildOut();
+    if (titleOut) timeline.add(titleOut);
+    // With a title, the fade starts as its last letters are leaving.
+    timeline.to(SCREEN, { autoAlpha: 0, duration: duration(0.3), ease: "power4.in" }, titleOut ? ">-0.15" : 0);
+    timeline.fromTo(PROGRESS_LINE, { scaleX: 0, autoAlpha: 1 }, { scaleX: 0.6, duration: duration(0.3) }, 0);
     return finished(timeline);
   },
 
@@ -32,7 +38,7 @@ export const pageTransition = {
     const timeline = gsap.timeline();
     timeline.to(BAND_BACKDROP, { height: heightOfBand(), duration: duration(0.7), ease: "power4.inOut" });
     timeline.to(PROGRESS_LINE, { scaleX: 1, duration: duration(0.7), ease: "power4.inOut" }, 0);
-    timeline.fromTo(SCREEN, { autoAlpha: 0 }, { autoAlpha: 1, duration: duration(0.35), ease: "power2.out" });
+    revealContent(timeline);
     timeline.to(PROGRESS_LINE, { autoAlpha: 0, duration: duration(0.3) }, "<");
     // From here the screen's own band takes over, so the backdrop can't stick
     // out from under it if the window is resized later.
@@ -46,9 +52,15 @@ export const pageTransition = {
  * to morph from, and the search field is ready to type into sooner.
  */
 export function playFirstAppearance() {
-  const timeline = gsap.timeline();
-  timeline.fromTo(SCREEN, { autoAlpha: 0 }, { autoAlpha: 1, duration: duration(0.35), ease: "power2.out" });
-  return finished(timeline);
+  return finished(revealContent(gsap.timeline()));
+}
+
+/** Adds the content's entrance to a timeline: a fade with a hard ease-out, and the title building in. */
+function revealContent(timeline: gsap.core.Timeline): gsap.core.Timeline {
+  const titleIn = titleBuildIn();
+  timeline.fromTo(SCREEN, { autoAlpha: 0 }, { autoAlpha: 1, duration: duration(0.45), ease: "power4.out" });
+  if (titleIn) timeline.add(titleIn, "<0.05");
+  return timeline;
 }
 
 /** How tall the current screen's band is (it's laid out even while invisible). */
