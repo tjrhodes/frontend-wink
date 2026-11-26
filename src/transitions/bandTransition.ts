@@ -1,23 +1,23 @@
 /**
- * How the blue band gets from the old screen to the new one, depending on
- * whether it can be seen before and after the move.
+ * How the blue band gets from the old screen to the new one, whatever the
+ * scroll position: fully on screen, partly scrolled away, or out of sight.
  *
  * A "backdrop" with the band's colour sits behind the screens. While the
- * content is faded out, the backdrop stands in for the band:
+ * content is faded out, it stands in for the band, and only ever shows
+ * the part of the band that can really be seen:
  *
- *   seen before → seen after       it morphs to the new height, and the page
- *                                  scrolls smoothly to its new position with it
- *   scrolled away → seen after     the page jumps (nothing is visible yet), then
- *                                  the band slides down from under the header
- *   seen before → scrolled away    the band slides up under the header, then
- *                                  the page jumps to where you were
- *   scrolled away → scrolled away  no band to animate: just the jump
+ * 1. Leaving: we note how much of the old band is showing (all, some or none).
+ * 2. Once the old content has faded, in a single frame: the page goes to the
+ *    top and the backdrop is set to exactly that visible height. On screen
+ *    nothing changes, and it no longer matters if the browser had scrolled
+ *    the page by itself (the new screen can be shorter than the old one).
+ * 3. The backdrop grows or shrinks, with a heavy ease, to however much of the
+ *    new band will show at the new scroll position (zero if none of it).
+ * 4. In a single frame again: the page jumps to its new position and the
+ *    backdrop is resized so the same part shows. Then the content fades in.
  */
 import { gsap } from "gsap";
-import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { duration } from "./motion";
-
-gsap.registerPlugin(ScrollToPlugin);
 
 const SCREEN_BAND = "#screen [data-band]";
 const BAND_BACKDROP = "#band-backdrop";
@@ -25,69 +25,61 @@ const BAND_BACKDROP = "#band-backdrop";
 /** The band's movement: long and heavy at both ends. */
 export const BAND_MOTION = { duration: 0.7, ease: "power4.inOut" } as const;
 
-/** Less of the band than this showing counts as scrolled away. */
+/** Less of the band than this showing is treated as none: no point animating a sliver. */
 const VISIBLE_ENOUGH_PX = 24;
 
-/** Before the old content fades: the backdrop takes the band's place and size. */
+/** How much of the old band was showing when we started leaving. */
+let bandShowingBefore = 0;
+
+/** Before the old content fades: note how much band shows, and put the backdrop behind it. */
 export function holdBand() {
-  gsap.set(BAND_BACKDROP, { height: heightOfBand(), yPercent: 0 });
+  bandShowingBefore = visiblePartOfBand(heightOfBand(), scrollY);
+  gsap.set(BAND_BACKDROP, { height: heightOfBand() });
 }
 
-/** Moves the band (and the page) to where the new screen needs them. */
+/**
+ * Steps 2 to 4 above. Step 2 runs straight away, before the browser can
+ * draw a frame of the new screen; the returned timeline does the rest.
+ */
 export function moveBand(targetScroll: number): gsap.core.Timeline {
-  const isSeenNow = isVisible(heightOfBackdrop(), scrollY);
-  const willBeSeen = isVisible(heightOfBand(), targetScroll);
-  if (isSeenNow && willBeSeen) return morphBand(targetScroll);
-  if (willBeSeen) return slideBandIn(targetScroll);
-  if (isSeenNow) return slideBandOut(targetScroll);
-  return gsap.timeline().call(() => scrollTo(0, targetScroll));
+  scrollTo(0, 0);
+  gsap.set(BAND_BACKDROP, { height: bandShowingBefore });
+  const bandShowingAfter = visiblePartOfBand(heightOfBand(), targetScroll);
+  const timeline = gsap.timeline();
+  timeline.to(BAND_BACKDROP, { height: bandShowingAfter, ...bandMotion() });
+  timeline.call(() => landAt(targetScroll));
+  return timeline;
 }
 
 /** After the new content is in: its own band takes over from the backdrop. */
 export function releaseBand() {
-  gsap.set(BAND_BACKDROP, { height: 0, yPercent: 0 });
+  gsap.set(BAND_BACKDROP, { height: 0 });
 }
 
-/** The band grows or shrinks to its new height while the page scrolls along with it. */
-function morphBand(targetScroll: number) {
-  const motion = { duration: duration(BAND_MOTION.duration), ease: BAND_MOTION.ease };
-  const timeline = gsap.timeline();
-  timeline.to(BAND_BACKDROP, { height: heightOfBand(), ...motion });
-  timeline.to(window, { scrollTo: { y: targetScroll, autoKill: false }, ...motion }, 0);
-  return timeline;
-}
-
-/** Jump to the new position, then bring the band down from under the header. */
-function slideBandIn(targetScroll: number) {
-  const timeline = gsap.timeline();
-  timeline.call(() => scrollTo(0, targetScroll));
-  timeline.set(BAND_BACKDROP, { height: heightOfBand(), yPercent: -100 });
-  timeline.to(BAND_BACKDROP, { yPercent: 0, duration: duration(BAND_MOTION.duration), ease: BAND_MOTION.ease });
-  return timeline;
-}
-
-/** Send the band up under the header, then jump to the new position. */
-function slideBandOut(targetScroll: number) {
-  const timeline = gsap.timeline();
-  timeline.to(BAND_BACKDROP, { yPercent: -100, duration: duration(BAND_MOTION.duration), ease: BAND_MOTION.ease });
-  timeline.call(() => scrollTo(0, targetScroll));
-  timeline.call(releaseBand);
-  return timeline;
+/**
+ * Jumps to the new scroll position, with the backdrop at the band's full
+ * height: at that position, exactly the part we animated to shows.
+ */
+function landAt(targetScroll: number) {
+  gsap.set(BAND_BACKDROP, { height: heightOfBand() });
+  scrollTo(0, targetScroll);
 }
 
 /**
  * The band starts right under the (sticky) header, so at a given scroll
- * position its visible part is its height minus how far the page is scrolled.
+ * position the part of it you can see is its height minus the scroll.
  */
-function isVisible(bandHeight: number, scrollPosition: number): boolean {
-  return bandHeight - scrollPosition > VISIBLE_ENOUGH_PX;
+function visiblePartOfBand(bandHeight: number, scrollPosition: number): number {
+  const visiblePart = bandHeight - scrollPosition;
+  return visiblePart > VISIBLE_ENOUGH_PX ? visiblePart : 0;
+}
+
+/** The band's movement with the visitor's motion preference applied. */
+function bandMotion() {
+  return { duration: duration(BAND_MOTION.duration), ease: BAND_MOTION.ease };
 }
 
 /** How tall the current screen's band is (it's laid out even while invisible). */
 function heightOfBand(): number {
   return document.querySelector(SCREEN_BAND)?.getBoundingClientRect().height ?? 0;
-}
-
-function heightOfBackdrop(): number {
-  return document.querySelector(BAND_BACKDROP)?.getBoundingClientRect().height ?? 0;
 }

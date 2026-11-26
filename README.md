@@ -116,16 +116,14 @@ GSAP animates the change between screens. The blue band at the top stays on scre
 
 The title is split only while it animates, then restored to plain text, so React keeps control of it the rest of the time. Kerning and ligatures are off on the title, so the letters don't shift when they're split.
 
-The band also allows for scrolling (`transitions/bandTransition.ts`). The router remembers where each history entry was scrolled to, so it knows where Back will land before it gets there:
+The band also allows for scrolling (`transitions/bandTransition.ts`). It only ever animates the part of the band you can actually see:
 
-| Band before | Band after | What happens |
-|---|---|---|
-| on screen | on screen | it morphs, and the page scrolls smoothly with it |
-| scrolled away | on screen | the page jumps while it's blank, then the band slides down from under the header |
-| on screen | scrolled away | the band slides up under the header, then the page jumps |
-| scrolled away | scrolled away | just the fades |
+1. **When leaving,** it notes how many pixels of the band are showing: all of it, some, or none.
+2. **Once the content has faded,** in a single frame, the page goes to the top and the stand-in band is set to exactly that height. Nothing visibly changes, even if the browser had scrolled a shorter new screen by itself.
+3. **The band then grows or shrinks,** with the heavy ease, to however much of the new band will show at the new scroll position.
+4. **The page jumps to its new position** in a single frame, and the content fades in.
 
-While the old screen fades out, the router already loads the new screen's data (`routing/prepareRoute.ts`). The book page therefore arrives complete, and the band morphs straight to its final height. Results fade in with a light stagger.
+So a fully visible band morphs, a partly scrolled one grows from what was showing, and a scrolled-away one grows from zero under the header, or shrinks back up to it. The router remembers each history entry's scroll position, so it knows where Back will land before it gets there.
 
 Every duration goes through one helper, so visitors who ask for reduced motion get instant changes instead. After each new screen, keyboard focus moves to the search field or the page heading.
 
