@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+# Built from src/styles/theme.scss by vite.config.ts
+src/styles/generated/

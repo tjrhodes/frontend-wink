@@ -1,0 +1,62 @@
+// The app's colours, in one place.
+//
+// The palette comes from a photo of rock and lichen in Norway (the same one
+// used on tomrhodes.it). Sass turns it into a Tailwind `@theme` block, so
+// every colour here becomes a utility class: `bg-rock`, `text-lichen`, and so on.
+//
+// This file is compiled to src/styles/generated/theme.css by the
+// `sassTheme` plugin in vite.config.ts. Change a colour here and Tailwind
+// picks it up straight away.
+
+@use "sass:color";
+@use "sass:map";
+
+// The base colours, named after what they are in the photo.
+$palette: (
+  "crevice": #151a2b,
+  // shadow between the rocks
+  "rock": #1b2848,
+  // rock navy
+  "rock-2": #293b5f,
+  "slate": #3a5382,
+  // slate blue
+  "rock-4": #6983b6,
+  // rock catching the light
+  "lichen": #e9c93a,
+  // lichen yellow
+  "sun": #f8e825,
+  // brightest lichen
+  "ochre": #d9a21b,
+  "rust": #d9730f,
+  // lichen orange
+  "ember": #c54b12,
+  // red-orange lichen
+  "stone": #dbd2b9,
+  // pale mineral patches
+  "mist": #f6f2e8,
+  // pale stone
+  "ink": #23283a,
+  // body text
+  "mute": #646b80,
+  // secondary text
+  "line": #dfe2ea,
+  // hairlines and borders
+  "paper": #ffffff,
+);
+
+// Colours worked out from the palette, so they always stay in tune with it.
+$derived: (
+  // A faint lichen wash for highlighted rows.
+  "lichen-wash": color.mix(map.get($palette, "lichen"), map.get($palette, "paper"), 14%),
+  // Rock lifted a little, for hover states on dark backgrounds.
+  "rock-lift": color.scale(map.get($palette, "rock"), $lightness: 12%),
+  // Muted text that still reads on the dark rock background.
+  "mist-dim": color.mix(map.get($palette, "mist"), map.get($palette, "rock"), 70%),
+);
+
+// Hand everything to Tailwind as theme colours.
+@theme {
+  @each $name, $value in map.merge($palette, $derived) {
+    --color-#{$name}: #{$value};
+  }
+}
