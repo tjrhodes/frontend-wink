@@ -58,9 +58,10 @@ function interceptNavigation(event: NavigateEvent) {
   const isOurs = event.canIntercept && !event.hashChange && !event.downloadRequest && !event.formData;
   if (!isOurs) return;
   const nextRoute = routeFromUrl(new URL(event.destination.url));
-  // "manual" scrolling and focus: we restore the scroll position once the new
-  // screen is drawn, and we choose where focus goes (the browser's default
-  // would pull it out of the search field after every letter).
+  rememberScrollPosition();
+  // "manual" scrolling and focus: we decide when and how the page scrolls (as
+  // part of the transition), and where focus goes (the browser's default would
+  // pull it out of the search field after every letter).
   event.intercept({ scroll: "manual", focusReset: "manual", handler: () => changeRoute(event, nextRoute) });
 }
 
@@ -74,8 +75,7 @@ async function changeRoute(event: NavigateEvent, nextRoute: Route) {
   if (event.signal.aborted) return releaseData();
   showRoute(nextRoute);
   releaseData();
-  event.scroll();
-  await revealScreen();
+  await revealScreen({ targetScroll: scrollTargetFor(event) });
 }
 
 /**
@@ -84,7 +84,7 @@ async function changeRoute(event: NavigateEvent, nextRoute: Route) {
  */
 function showOnSameScreen(event: NavigateEvent, nextRoute: Route) {
   showRoute(nextRoute);
-  if (event.navigationType !== "replace") event.scroll();
+  scrollTo(0, scrollTargetFor(event));
 }
 
 /**
@@ -92,10 +92,29 @@ function showOnSameScreen(event: NavigateEvent, nextRoute: Route) {
  * to whatever the screen marked with `data-autofocus`, or else its main heading,
  * so keyboard and screen reader users start reading in the right place.
  */
-export async function revealScreen({ isFirstScreen = false } = {}) {
-  await (isFirstScreen ? playFirstAppearance() : pageTransition.enter());
+export async function revealScreen({ isFirstScreen = false, targetScroll = scrollY } = {}) {
+  await (isFirstScreen ? playFirstAppearance() : pageTransition.enter(targetScroll));
   const startingPoint = document.querySelector<HTMLElement>("#screen [data-autofocus], #screen h1");
   startingPoint?.focus({ preventScroll: true });
+}
+
+/**
+ * Where each history entry was scrolled to when we left it, by entry key.
+ * Knowing where Back will land *before* scrolling there lets the transition
+ * choose how to move the band (see bandTransition.ts).
+ */
+const scrollPositions = new Map<string, number>();
+
+/** Called as a navigation starts, while the current entry is still the one we're leaving. */
+function rememberScrollPosition() {
+  const leavingKey = navigation.currentEntry?.key;
+  if (leavingKey) scrollPositions.set(leavingKey, scrollY);
+}
+
+/** Back/Forward return to where you were; typing stays put; anything new starts at the top. */
+function scrollTargetFor(event: NavigateEvent): number {
+  if (event.navigationType === "traverse") return scrollPositions.get(event.destination.key) ?? 0;
+  return event.navigationType === "replace" ? scrollY : 0;
 }
 
 /** Puts a route on screen. flushSync makes React draw it before we carry on animating. */

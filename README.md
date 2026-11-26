@@ -114,7 +114,16 @@ GSAP animates the change between screens. The blue band at the top stays on scre
 4. The new content fades in, with a hard ease-out.
 5. On a book page, the title builds letter by letter with GSAP's SplitText, each word in its own mask.
 
-The title is split only while it animates, then restored to plain text, so React keeps control of it the rest of the time.
+The title is split only while it animates, then restored to plain text, so React keeps control of it the rest of the time. Kerning and ligatures are off on the title, so the letters don't shift when they're split.
+
+The band also allows for scrolling (`transitions/bandTransition.ts`). The router remembers where each history entry was scrolled to, so it knows where Back will land before it gets there:
+
+| Band before | Band after | What happens |
+|---|---|---|
+| on screen | on screen | it morphs, and the page scrolls smoothly with it |
+| scrolled away | on screen | the page jumps while it's blank, then the band slides down from under the header |
+| on screen | scrolled away | the band slides up under the header, then the page jumps |
+| scrolled away | scrolled away | just the fades |
 
 While the old screen fades out, the router already loads the new screen's data (`routing/prepareRoute.ts`). The book page therefore arrives complete, and the band morphs straight to its final height. Results fade in with a light stagger.
 

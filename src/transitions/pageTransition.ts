@@ -5,25 +5,24 @@
  * 1. Leaving: a book title drops away letter by letter, then the content
  *    fades out (hard ease-in). A backdrop the same height and colour as the
  *    band sits behind it, so the band seems to stay.
- * 2. Entering: the backdrop stretches or shrinks to the new screen's band
- *    height (a heavy ease-in-out), then the new content fades in on top
- *    (hard ease-out) while a book title builds in (see titleBuild.ts).
+ * 2. Entering: the band moves into place, by morphing or sliding depending
+ *    on the scroll position (see bandTransition.ts), then the new content
+ *    fades in on top (hard ease-out) while a book title builds in (see titleBuild.ts).
  * Meanwhile a lichen-yellow line grows under the header, like the lines under
  * the menu on tomrhodes.it.
  */
 import { gsap } from "gsap";
+import { BAND_MOTION, holdBand, moveBand, releaseBand } from "./bandTransition";
 import { duration } from "./motion";
 import { titleBuildIn, titleBuildOut } from "./titleBuild";
 
 const SCREEN = "#screen";
-const SCREEN_BAND = "#screen [data-band]";
-const BAND_BACKDROP = "#band-backdrop";
 const PROGRESS_LINE = "#route-progress";
 
 export const pageTransition = {
   /** The title drops away (on a book page), then the content fades out with a hard ease-in. */
   leave() {
-    gsap.set(BAND_BACKDROP, { height: heightOfBand() });
+    holdBand();
     const timeline = gsap.timeline();
     const titleOut = titleBuildOut();
     if (titleOut) timeline.add(titleOut);
@@ -33,16 +32,16 @@ export const pageTransition = {
     return finished(timeline);
   },
 
-  /** Morphs the band to the new screen's height, then fades the new content in. */
-  enter() {
+  /** Moves the band and the page into place (see bandTransition.ts), then fades the new content in. */
+  enter(targetScroll: number) {
     const timeline = gsap.timeline();
-    timeline.to(BAND_BACKDROP, { height: heightOfBand(), duration: duration(0.7), ease: "power4.inOut" });
-    timeline.to(PROGRESS_LINE, { scaleX: 1, duration: duration(0.7), ease: "power4.inOut" }, 0);
+    timeline.add(moveBand(targetScroll));
+    timeline.to(PROGRESS_LINE, { scaleX: 1, duration: duration(BAND_MOTION.duration), ease: BAND_MOTION.ease }, 0);
     revealContent(timeline);
     timeline.to(PROGRESS_LINE, { autoAlpha: 0, duration: duration(0.3) }, "<");
     // From here the screen's own band takes over, so the backdrop can't stick
     // out from under it if the window is resized later.
-    timeline.set(BAND_BACKDROP, { height: 0 });
+    timeline.call(releaseBand);
     return finished(timeline);
   },
 };
@@ -61,11 +60,6 @@ function revealContent(timeline: gsap.core.Timeline): gsap.core.Timeline {
   timeline.fromTo(SCREEN, { autoAlpha: 0 }, { autoAlpha: 1, duration: duration(0.45), ease: "power4.out" });
   if (titleIn) timeline.add(titleIn, "<0.05");
   return timeline;
-}
-
-/** How tall the current screen's band is (it's laid out even while invisible). */
-function heightOfBand(): number {
-  return document.querySelector(SCREEN_BAND)?.getBoundingClientRect().height ?? 0;
 }
 
 /** Turns a GSAP timeline into a plain promise the router can await. */
