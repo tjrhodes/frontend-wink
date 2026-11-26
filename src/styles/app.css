@@ -53,9 +53,15 @@
   --font-sans: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-cond: "Fira Sans Condensed", "Fira Sans", system-ui, sans-serif;
   --radius-card: 6px;
+  /* Every result row (and its loading placeholder) is exactly this tall, so the list never jumps. */
+  --spacing-row: 9.5rem;
 }
 
 @layer base {
+  /* Always leave room for the scrollbar, so the page doesn't shift sideways when it appears. */
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-paper font-sans font-light text-ink antialiased;
     font-size: 1.0625rem;

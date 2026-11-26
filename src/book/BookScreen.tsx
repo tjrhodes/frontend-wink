@@ -7,7 +7,7 @@ import { messageForRequestError } from "../books/errorMessages";
 import { BackToResults } from "../routing/BackToResults";
 import { StatusMessage } from "../ui/StatusMessage";
 import { useDocumentTitle } from "../ui/useDocumentTitle";
-import { BookDetails } from "./BookDetails";
+import { BookDetails, BookHeaderFrame, HEADER_COVER } from "./BookDetails";
 
 export function BookScreen({ bookId }: { bookId: string }) {
   const { data: book, error, isError } = useGetBookQuery(bookId);
@@ -29,7 +29,15 @@ function BookProblem({ message }: { message: string | null }) {
   );
 }
 
-/** A dark band the same height as the real header, so nothing jumps when the book arrives. */
+/** The real header's frame, with placeholders where the cover and title will go. */
 function BookLoading() {
-  return <div aria-busy aria-label="Loading book" className="h-96 animate-pulse bg-rock" />;
+  const cover = <div className={`${HEADER_COVER} aspect-[2/3] animate-pulse rounded-card bg-rock-lift`} />;
+  return (
+    <div aria-busy aria-label="Loading book">
+      <BookHeaderFrame cover={cover}>
+        <div className="h-10 w-3/4 animate-pulse rounded bg-rock-lift sm:h-12" />
+        <div className="mt-4 h-4 w-1/3 animate-pulse rounded bg-rock-lift" />
+      </BookHeaderFrame>
+    </div>
+  );
 }

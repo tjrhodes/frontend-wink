@@ -67,7 +67,12 @@ The brief asks for a new search on every character, so there's deliberately no d
 - **Old answers can't overwrite new ones.** RTK Query shows only the answer for the latest search, so a slow, out-of-date response is never displayed.
 - **Answers are cached.** Going back to a page or a search you've already seen is instant, with no new request.
 - **Previous results stay visible, dimmed,** while the next answer loads. Nothing flickers.
-- **Errors get plain explanations.** That includes Google's rate limit (429), which is easy to hit with live search and no API key.
+- **Rate limits are retried.** Google's "too many requests" reply (429) is easy to hit with live search, especially without an API key. Those requests are retried automatically, after a short pause that grows each time.
+- **Errors get plain explanations,** in a notice that floats over the page. Results you already have stay put.
+
+### Nothing jumps
+
+Every result row has the same fixed height: one line of title, one of authors, two of description. The loading placeholders are built from the same layout, and the toolbar is there from the first letter. Room for a full page of rows is reserved from the start, so nothing moves while results change under your typing. In a test typing "dune messiah" against delayed and rate-limited responses, Chrome measured a layout shift score of 0 once the first results were on screen. The book page's loading state uses the real header's frame, and the page always keeps room for the scrollbar.
 
 ### Google's data, handled in one place
 

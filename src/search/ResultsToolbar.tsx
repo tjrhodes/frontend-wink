@@ -1,6 +1,7 @@
 /**
  * The line above the results: how many there are, which page this is,
  * and how many books to show per page (the brief's 5, 10, 15 or 20).
+ * It's shown while loading too ("Searching…"), so the list below never moves.
  */
 import { PAGE_SIZES, type PageSize } from "../config";
 import { goTo } from "../routing/navigation";
@@ -8,18 +9,22 @@ import type { SearchRoute } from "../routing/routes";
 
 const formatNumber = new Intl.NumberFormat("en").format;
 
-type ResultsToolbarProps = { route: SearchRoute; totalItems: number; totalPages: number };
+/** How many results there are; left out while the first answer is still loading. */
+export type ResultTotals = { totalItems: number; totalPages: number };
 
-export function ResultsToolbar({ route, totalItems, totalPages }: ResultsToolbarProps) {
+export function ResultsToolbar({ route, totals }: { route: SearchRoute; totals?: ResultTotals }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-rock pb-3">
-      {/* "About", because Google's total is an estimate that can change from page to page. */}
-      <p className="kicker text-mute">
-        About {formatNumber(totalItems)} books · page {route.page} of {formatNumber(totalPages)}
-      </p>
+    // Stacked on phones and side by side from tablets up, whatever the text, so its height never changes.
+    <div className="flex flex-col gap-2 border-b-2 border-rock pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="kicker truncate text-mute">{totals ? describeTotals(route, totals) : "Searching…"}</p>
       <PageSizePicker route={route} />
     </div>
   );
+}
+
+/** "About", because Google's total is an estimate that can change from page to page. */
+function describeTotals(route: SearchRoute, { totalItems, totalPages }: ResultTotals): string {
+  return `About ${formatNumber(totalItems)} books · page ${route.page} of ${formatNumber(totalPages)}`;
 }
 
 /** Changing the page size goes back to page 1, since the old page number no longer means the same books. */

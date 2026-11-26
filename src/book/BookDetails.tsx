@@ -3,6 +3,7 @@
  * on tomrhodes.it), then the facts, the description and the link to Google Books.
  */
 import DOMPurify from "dompurify";
+import type { ReactNode } from "react";
 import { authorList, type Book } from "../books/book";
 import { BookCover } from "../books/BookCover";
 import { BackToResults } from "../routing/BackToResults";
@@ -28,18 +29,31 @@ export function BookDetails({ book }: { book: Book }) {
 
 function BookHeader({ book }: { book: Book }) {
   return (
+    <BookHeaderFrame cover={<BookCover book={book} describe className={HEADER_COVER} />}>
+      <h1 tabIndex={-1} className="text-4xl outline-none sm:text-5xl">
+        {book.title}
+      </h1>
+      {book.subtitle && <p className="mt-2 text-xl text-mist-dim">{book.subtitle}</p>}
+      {book.authors.length > 0 && <p className="kicker mt-4 text-lichen">{authorList(book)}</p>}
+    </BookHeaderFrame>
+  );
+}
+
+/** The cover size in the header, shared with the loading placeholder. */
+export const HEADER_COVER = "w-40 shrink-0 sm:w-48";
+
+/**
+ * The rock-navy band at the top of a book page. The loading placeholder uses
+ * the same frame, so the page doesn't jump when the book arrives.
+ */
+export function BookHeaderFrame({ cover, children }: { cover: ReactNode; children: ReactNode }) {
+  return (
     <header className="bg-linear-to-br from-crevice via-rock to-rock-2 text-paper">
       <div className="mx-auto max-w-5xl px-5 py-6 sm:px-10 sm:py-10">
         <BackToResults className="mb-6 text-lichen" />
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end">
-          <BookCover book={book} describe className="w-40 shrink-0 sm:w-48" />
-          <div>
-            <h1 tabIndex={-1} className="text-4xl outline-none sm:text-5xl">
-              {book.title}
-            </h1>
-            {book.subtitle && <p className="mt-2 text-xl text-mist-dim">{book.subtitle}</p>}
-            {book.authors.length > 0 && <p className="kicker mt-4 text-lichen">{authorList(book)}</p>}
-          </div>
+          {cover}
+          <div className="flex-1">{children}</div>
         </div>
       </div>
     </header>

@@ -1,6 +1,6 @@
 /**
- * The list of results. Each new set of results arrives with a quick
- * staggered GSAP entrance, one row after another.
+ * The list of results. Each new set of results fades up with a quick
+ * GSAP stagger, one row after another.
  */
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
@@ -14,15 +14,16 @@ gsap.registerPlugin(useGSAP);
 export function BookList({ books }: { books: Book[] }) {
   const listRef = useRef<HTMLOListElement>(null);
 
-  // Runs again only when a different set of results arrives (cached ones keep their identity).
+  // A soft refresh each time a different set of results arrives (cached ones keep
+  // their identity, so they don't replay). Opacity only: nothing moves, nothing jumps.
+  // fromTo, not from: if new results arrive mid-animation, `from` would take the
+  // half-faded rows as its end point and leave them stuck half-faded.
   useGSAP(
     () => {
-      // fromTo, not from: if new results arrive mid-animation, `from` would take the
-      // half-faded rows as its end point and leave them stuck half-faded.
       gsap.fromTo(
         "li",
-        { autoAlpha: 0, y: 10 },
-        { autoAlpha: 1, y: 0, stagger: 0.03, duration: duration(0.3), ease: "power2.out", clearProps: "transform" },
+        { autoAlpha: 0.3 },
+        { autoAlpha: 1, stagger: 0.02, duration: duration(0.25), ease: "power1.out" },
       );
     },
     { scope: listRef, dependencies: [books] },

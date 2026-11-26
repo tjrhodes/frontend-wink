@@ -6,6 +6,7 @@ import { useLiveBookSearch } from "../books/useLiveBookSearch";
 import type { BookSearchResult } from "../books/book";
 import { Link } from "../routing/Link";
 import type { SearchRoute } from "../routing/routes";
+import { ProblemNotice } from "../ui/ProblemNotice";
 import { StatusMessage } from "../ui/StatusMessage";
 import { useDocumentTitle } from "../ui/useDocumentTitle";
 import { BookList } from "./BookList";
@@ -34,34 +35,40 @@ export function SearchScreen({ route }: { route: SearchRoute }) {
 /** Picks what to show under the search field, depending on how the search is going. */
 function SearchResults({ route }: { route: SearchRoute }) {
   const search = useLiveBookSearch(route);
-  const problem = search.isError ? messageForRequestError(search.error) : null;
-
   if (!search.hasQuery) return <StartTyping />;
-  if (problem)
-    return (
-      <StatusMessage tone="problem" title="Something went wrong">
-        {problem}
-      </StatusMessage>
-    );
-  if (!search.data) return <SkeletonList rows={route.pageSize} />;
-  // While a newer search is on its way, the previous results stay visible, dimmed.
+  const problem = search.isError ? messageForRequestError(search.error) : null;
   return (
-    <div aria-busy={search.isFetching} className={search.isFetching ? "opacity-60 transition-opacity" : ""}>
-      <Results route={route} result={search.data} />
+    // Room for a full page of rows is kept from the first letter, so the footer doesn't jump either.
+    <div style={{ minHeight: `calc(${route.pageSize} * var(--spacing-row) + 8rem)` }}>
+      {problem && <ProblemNotice message={problem} />}
+      <ResultsContent route={route} result={search.data} isFetching={search.isFetching} hasProblem={!!problem} />
     </div>
   );
 }
 
-/** The results themselves, or the right message when a page is empty. */
-function Results({ route, result }: { route: SearchRoute; result: BookSearchResult }) {
+type ResultsContentProps = { route: SearchRoute; result?: BookSearchResult; isFetching: boolean; hasProblem: boolean };
+
+/**
+ * The toolbar is always there, and the list area always has the same shape:
+ * placeholders while loading, books once they arrive, a message if there are none.
+ */
+function ResultsContent({ route, result, isFetching, hasProblem }: ResultsContentProps) {
+  if (!result && hasProblem) return <StatusMessage title="No results to show yet" />;
+  if (!result)
+    return (
+      <>
+        <ResultsToolbar route={route} />
+        <SkeletonList rows={route.pageSize} />
+      </>
+    );
   const totalPages = countPages(result.totalItems, route.pageSize);
-  if (result.books.length === 0) return <NothingHere route={route} />;
   return (
-    <>
-      <ResultsToolbar route={route} totalItems={result.totalItems} totalPages={totalPages} />
-      <BookList books={result.books} />
+    // While a newer search is on its way, these results stay where they are, dimmed.
+    <div aria-busy={isFetching} className={`transition-opacity ${isFetching ? "opacity-60" : ""}`}>
+      <ResultsToolbar route={route} totals={{ totalItems: result.totalItems, totalPages }} />
+      {result.books.length === 0 ? <NothingHere route={route} /> : <BookList books={result.books} />}
       <Paginator route={route} totalPages={totalPages} />
-    </>
+    </div>
   );
 }
 
