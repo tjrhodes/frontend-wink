@@ -30,7 +30,7 @@ export function BookDetails({ book }: { book: Book }) {
 
 function BookHeader({ book }: { book: Book }) {
   return (
-    <BookHeaderFrame cover={<BookCover book={book} describe className={HEADER_COVER} />}>
+    <BookHeaderFrame cover={<BookCover book={book} describe onDark className={HEADER_COVER} />}>
       <h1
         tabIndex={-1}
         data-split-title
