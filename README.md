@@ -1,6 +1,10 @@
+**English** · [Italiano](README.it.md)
+
 # Book Search
 
 A live search for Google Books: a responsive single-page app built with React, TypeScript, Redux Toolkit and Tailwind CSS.
+
+**Try it: [frontend-wink.vercel.app](https://frontend-wink.vercel.app/)**
 
 - Results update with every character typed.
 - Pages use Google's own `startIndex` and `maxResults` parameters, with 5, 10, 15 or 20 books per page.
@@ -124,6 +128,8 @@ The band also allows for scrolling (`transitions/bandTransition.ts`). It only ev
 4. **The page jumps to its new position** in a single frame, and the content fades in.
 
 So a fully visible band morphs, a partly scrolled one grows from what was showing, and a scrolled-away one grows from zero under the header, or shrinks back up to it. The router remembers each history entry's scroll position, so it knows where Back will land before it gets there.
+
+While the old screen fades out, the router already loads what the new one needs (`routing/prepareRoute.ts`). For a book page, that's the book's details and then its cover image, waiting at most 0.4 seconds for the cover and 1.5 seconds overall. So the page arrives complete, and the band grows straight to its final height. If a cover is still loading, its box (already full size) shows a soft pulse and a tiny lichen spinner, and the image fades in once it arrives. Result covers do the same.
 
 Every duration goes through one helper, so visitors who ask for reduced motion get instant changes instead. After each new screen, keyboard focus moves to the search field or the page heading.
 
